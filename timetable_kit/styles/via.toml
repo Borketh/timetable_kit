@@ -1,0 +1,10 @@
+# Borketh's VIA-inspired style
+[time]
+24h = true
+pm = {style = ""}
+
+[day]
+format = "numbers"
+
+[css]
+tag = "via-special-css"

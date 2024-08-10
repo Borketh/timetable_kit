@@ -16,7 +16,7 @@ from timetable_kit.errors import GTFSError
 from timetable_kit.debug import debug_print
 
 
-def gtfs_date_to_isoformat(gtfs_date: str) -> str:
+def gtfs_date_to_isoformat(gtfs_date: str | int) -> str:
     """Given a GTFS date string, return an ISO format date string.
 
     This is a triviality: it converts 20220310 to 2022-03-10.
