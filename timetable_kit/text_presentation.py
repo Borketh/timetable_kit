@@ -856,8 +856,7 @@ def style_updown(reverse: bool, doing_html=False) -> str:
         # Put arrows on right and left, with spaces
         text = " ".join([arrow, text, arrow])
 
-    text = "".join(["<b>", text, "</b>"])
-    return text
+    return f"<b>{text}</b>"
 
 
 def get_origin_destination_spacer(doing_html: bool) -> str:

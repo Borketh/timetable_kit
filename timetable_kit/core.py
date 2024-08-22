@@ -101,6 +101,7 @@ class TTSpec:
     def __init__(self: Self, aux: dict, csv: pd.DataFrame) -> None:
         self.aux: dict = aux
         self.csv: pd.DataFrame = csv
+        self._column_options = self._extract_column_options()
         self.__set_aux_defaults()  # Set defaults for missing aux
         # Warning, this doesn't set crucial things like tt_id.
 
@@ -460,7 +461,7 @@ class TTSpec:
         ]
         return train_specs_list
 
-    def extract_column_options(self: Self):
+    def _extract_column_options(self: Self):
         """If this TTSpec has column-options in row 2 of the CSV, remove that row and
         fill in the column_options structure.
 
@@ -474,19 +475,18 @@ class TTSpec:
 
         We HAVE to reindex after removing the column_options from the CSV.
         """
-        self.column_options: list[list[str]]
+
         # Consider generalizing to allow column-options in other rows
         if str(self.csv.iloc[1, 0]).lower() not in ["column-options", "column_options"]:
             column_count = self.csv.shape[1]
             # What, there weren't any?  Make a list containing blank lists:
-            self.column_options = [[]] * column_count
+            return [[]] * column_count
             # No column-options row, so don't delete it
-            return
+
         # Now for the main version
         column_options_df = self.csv.iloc[1, 0:]  # second row, all of it
         column_options_raw_list = column_options_df.to_list()
         column_options_nested_list = [str(i).split() for i in column_options_raw_list]
-        self.column_options = column_options_nested_list
         # Now delete row 2.
         # This drops by index and not by actual row number, FIXME
         # Thankfully they're currently the same
@@ -495,8 +495,13 @@ class TTSpec:
         # We MUST reset the index so rows are numbered 0 to end without breaks
         # Drop old index, operate in place
         self.csv.reset_index(drop=True, inplace=True)
-        debug_print(1, "Column options separated from CSV:", self.column_options)
+        debug_print(1, "Column options separated from CSV:", column_options_nested_list)
         debug_print(6, "New CSV:", self.csv)
+        return column_options_nested_list
+
+    @property
+    def column_options(self):
+        return self._column_options
 
 
 class _CellCodes(TypedDict, total=False):
@@ -817,7 +822,6 @@ def fill_tt_spec(
 
     # Clean up the spec.
     spec.strip_omits()
-    spec.extract_column_options()  # Also removes column_options from main CSV dataframe
     spec.augment_from_key_cell(feed=today_feed)  # Expand "shorthand" specs
 
     # We have a filtered feed.  We're going to have to map from tsns to trip_ids, repeatedly.
@@ -1150,6 +1154,7 @@ def fill_tt_spec(
                     t.text.iloc[y, x] = text_presentation.style_updown(
                         reverse, doing_html=doing_html
                     )
+                    pass
                 case [
                     "days" | "days-of-week",
                     ck,
