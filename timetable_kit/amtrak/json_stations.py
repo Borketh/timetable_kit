@@ -72,6 +72,7 @@ def download_stations_json() -> str:
 
 def save_stations_json(stations_json: str):
     """Save Amtrak's basic stations database (json text) to a suitable file."""
+    stations_json_local_path().parent.mkdir(exist_ok=True)
     with open(stations_json_local_path(), "w") as stations_json_local_file:
         print(stations_json, file=stations_json_local_file)
 
@@ -448,8 +449,7 @@ def make_arg_parser():
     return arg_parser
 
 
-# MAIN PROGRAM
-if __name__ == "__main__":
+def main():
     arg_parser = make_arg_parser()
     args = arg_parser.parse_args()
 
@@ -463,3 +463,8 @@ if __name__ == "__main__":
                 download_one_station(str.upper(args.station_code))
         case "process" | "p":
             do_station_processing()
+
+
+# MAIN PROGRAM
+if __name__ == "__main__":
+    main()

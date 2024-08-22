@@ -19,6 +19,14 @@ tomlkit = "^0.13.0"
 black = {extras = ["d"], version = "^24.4.2"}
 mypy = ">=1.8.0"
 
+[tool.poetry.scripts]
+amtrak-gtfs = "timetable_kit.amtrak.get_gtfs:main"
+amtrak-stations = "timetable_kit.amtrak.json_stations:main"
+via-gtfs = "timetable_kit.via.get_gtfs:main"
+greyhound-gtfs = "timetable_kit.greyhound.get_gtfs:main"
+hartford-line-gtfs = "timetable_kit.hartford_line.get_gtfs:main"
+maple-leaf-gtfs = "timetable_kit.maple_leaf.get_gtfs:main"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -170,5 +170,9 @@ def get_gtfs_files():
     return _gtfs_files
 
 
-if __name__ == "__main__":
+def main():
     get_gtfs_files().download_and_save()
+
+
+if __name__ == "__main__":
+    main()
