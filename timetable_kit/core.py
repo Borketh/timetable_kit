@@ -1494,7 +1494,9 @@ def fill_tt_spec(
     t.classes.fillna(value="", inplace=True)
     # debug_print(1, "Classes table:", t.classes)
     # This is only set if it's "True"; fill in the "False" states.
-    t.th.fillna(value=False, inplace=True)
+    with pd.option_context("future.no_silent_downcasting", True):
+        t.th.fillna(value=False, inplace=True)
+        t.th.infer_objects(copy=False)
     # This is only set if it's not empty; fill in the "" states.
     t.attributes.fillna(value="", inplace=True)  # Correct default
 
