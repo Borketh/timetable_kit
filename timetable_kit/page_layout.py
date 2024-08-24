@@ -14,6 +14,7 @@ uses Jinja2, via the load_resources module.
 import datetime  # for getting today's date for credit on the timetable
 
 from timetable_kit.feed_enhanced import DateRange
+
 # My packages
 # We need runtime data such as the subpackage for the agency (amtrak, via, etc.)
 # And we need a shorthand way to refer to it
@@ -22,6 +23,7 @@ from timetable_kit.runtime_config import agency_singleton
 # The type, used for argument passing
 from timetable_kit.convenience_types import HtmlAndCss
 from timetable_kit.core import TTSpec
+from timetable_kit.styles import StyleHandler
 
 from timetable_kit.time import gtfs_date_to_isoformat
 from timetable_kit import icons
@@ -37,6 +39,7 @@ from timetable_kit.timetable_class import TTConfig
 def produce_html_page(
     timetable_styled_html,
     *,
+    style: StyleHandler,
     spec: TTSpec,  # for aux content (including page_id)  and list of station codes
     config: TTConfig,
     date_range: DateRange
@@ -101,9 +104,7 @@ def produce_html_page(
         "author": config.author,
         "connecting_services_keys_html": connecting_services_keys_html,
         "connecting_bus_key_sentence": config.agency.connecting_bus_key_sentence(),  # "Connecting Bus Service (can be booked through Amtrak)"
-        "agency_css_class": spec.aux.get(
-            "agency_css_class", config.agency.agency_css_class()
-        ),  # Used to change color of top heading & prefix with agency name
+        "agency_css_class": style.special_css_tag,  # Used to change color of top heading & prefix with agency name
         "unofficial_disclaimer": config.agency.unofficial_disclaimer(),  # "This is unofficial" disclaimer
         "always_check_disclaimer": config.agency.always_check_disclaimer(),  # "Always check agency website"
         "gtfs_data_link": config.agency.gtfs_data_link(),  # "GTFS data"
@@ -163,7 +164,9 @@ def produce_html_page(
     return result
 
 
-def produce_html_file(pages: list[HtmlAndCss], *, title, for_rpa=False, agency_special_css: str = ""):
+def produce_html_file(
+    pages: list[HtmlAndCss], *, title, for_rpa=False, agency_special_css: str = ""
+):
     """
     Take a *list* of containers output by calling produce_html_page, which are like this:
     html_text -- an HTML <div> section for a page
@@ -198,7 +201,7 @@ def produce_html_file(pages: list[HtmlAndCss], *, title, for_rpa=False, agency_s
         "icons_css": icons_css,
         "logos_css": logos_css,
         "font_faces_css": font_faces_css,
-        "agency_special_css": agency_special_css
+        "agency_special_css": agency_special_css,
     }
 
     html_file_params = {

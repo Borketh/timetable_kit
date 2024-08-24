@@ -22,6 +22,7 @@ from timetable_kit.generic_agency import Agency
 
 # For the Jinja templates
 from timetable_kit.load_resources import template_environment
+from timetable_kit.styles import StyleHandler
 
 
 class Timetable:
@@ -93,9 +94,11 @@ class Timetable:
             f'id="{table_id}" class="tt-table" aria-label="{aria_label} Timetable"'
         )
 
-    def set_agency_style(self, agency: Agency):
+    def set_style(self, style: StyleHandler):
         # this is stupid, FIXME
-        self.table_attributes = self.table_attributes.replace('class="', f'class="{agency.agency_css_class()} ')
+        self.table_attributes = self.table_attributes.replace(
+            'class="', f'class="{style.special_css_tag} '
+        )
 
     def write_csv_file(self, file: os.PathLike | str) -> None:
         """Write this out as a CSV file at the given path.
@@ -149,6 +152,7 @@ class TTConfig:
     sponsor: str  # for later
 
     gtfs_filename: str | Path
+    style_filename: str | Path
     input_dir: str | Path
     output_dir: str | Path
     reference_date: str

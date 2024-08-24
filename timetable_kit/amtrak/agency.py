@@ -109,10 +109,6 @@ class AgencyAmtrak(Agency):
         """Sentence to put in the symbol key for connecting bus services."""
         return "Connecting Bus Service (can be booked through Amtrak)"
 
-    def agency_css_class(self) -> str:
-        """Name of a CSS class for agency-specific styling."""
-        return "amtrak-special-css"
-
     def get_route_name(self, today_feed: FeedEnhanced, route_id: str) -> str:
         """Given today_feed and a route_id, produce a suitalbe name for a column
         subheading.

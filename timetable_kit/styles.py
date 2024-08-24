@@ -6,9 +6,11 @@ from typing import Any, Final, Protocol
 
 import tomlkit
 
+from timetable_kit.utils import Calendar, span_enclose, test, recurse_update_dict
+from timetable_kit.debug import debug_print
 from timetable_kit.errors import GTFSError
 from timetable_kit.load_resources import get_style_toml
-from timetable_kit.time import explode_timestr
+from timetable_kit.time import TimeTuple
 
 EXPECTED_KEYS: Final[set[str]] = {"time", "day", "css"}
 
@@ -21,10 +23,11 @@ class StyleHandler:
     def _read_toml(filename: str) -> dict[str, Any]:
         return tomlkit.parse(get_style_toml(filename))
 
-    def __init__(self, style_name: str):
+    def __init__(self, style_name: str = "default") -> None:
         # Load default style values first, then overwrite what changes in the specified style
-        config = self._read_toml("default")
-        config.update(self._read_toml(style_name))
+        default_config = self._read_toml("default")
+        selected_config = self._read_toml(style_name)
+        config = recurse_update_dict(default_config, selected_config)
 
         match config:  # now read that
             # I love using this to destructure things it's so convenient
@@ -35,7 +38,7 @@ class StyleHandler:
                     "pm": {"style": pm_style, "string": pm_string},
                 },
                 "day": {"format": day_format, "week_start": week_start},
-                "css": {"tag": special_css_tag},
+                "css": {"tag": special_css},
             }:
 
                 self._using_24h: bool = using_24h
@@ -45,11 +48,11 @@ class StyleHandler:
                 self._pm_string: str = pm_string
                 self._day_format: dict[str, str] = (
                     {"all": day_format, "some": day_format}
-                    if type(day_format) is str
+                    if isinstance(day_format, str)
                     else day_format
                 )
                 self._week_start: str = week_start
-                self._special_css_tag: str = special_css_tag
+                self._special_css_tag: str = special_css
 
             case _:
                 err = "Style config not valid. "
@@ -70,18 +73,20 @@ class StyleHandler:
 
                 raise StyleHandler.InvalidStyleError(err)
 
-    def format_time(
+    def format_time_string(
         self,
-        gtfs_timestr: str | int,
+        gtfs_timestr: str | int | TimeTuple,
         *,
         tz_difference: int = 0,
         html: bool = False,
-        spans: bool = False,
+        use_box_spans: bool = False,
     ) -> str:
         """
         Given a GTFS time, make a formatted time string.
         """
-        time_stuff = explode_timestr(gtfs_timestr, tz_difference)
+        html = html or use_box_spans  # if we want spans we need html first
+
+        time_stuff = TimeTuple.from_gtfs_time_string(gtfs_timestr, tz_difference)
 
         # these are agnostic to whether you're using 12h or 24h time
         # meridiem is just the m in am/pm - I couldn't think of another variable name lol
@@ -99,41 +104,70 @@ class StyleHandler:
             assert len(string) == 5
 
         else:
-            hour = time_stuff.hour if time_stuff.hour != 0 else 12
+            hour = time_stuff.hour12 if time_stuff.hour12 != 0 else 12
             string += f"{hour: >2}:{time_stuff.min:0>2}"
             assert len(string) == 5
             string += meridiem_string
 
         if html:
-            if spans:
-
-                def span(class_name: str = "") -> str:
-                    return f'<span class="{class_name}">' if class_name else "</span>"
+            if use_box_spans:
 
                 if self._using_24h:
-                    string = (
-                        f"{span('box-digit')}{string[0]}{span()}"
-                        f"{span('box-digit')}{string[1]}{span()}"
-                        f"{span('box-colon')}{string[2]}{span()}"
-                        f"{span('box-digit')}{string[3]}{span()}"
-                        f"{span('box-digit')}{string[4]}{span()}"
-                        f"{string[5:]}"  # will correctly add nothing if there are only 5 characters
+                    string = span_enclose(
+                        "box-time24",
+                        span_enclose("box-digit", string[0]),
+                        span_enclose("box-digit", string[1]),
+                        span_enclose("box-colon", string[2]),
+                        span_enclose("box-digit", string[3]),
+                        span_enclose("box-digit", string[4]),
+                        # will correctly add nothing if there are only 5 characters
+                        string[5:],
                     )
+
                 else:
-                    string = (
-                        f"{span('box-1')}{string[0]}{span()}"
-                        f"{span('box-digit')}{string[1]}{span()}"
-                        f"{span('box-colon')}{string[2]}{span()}"
-                        f"{span('box-digit')}{string[3]}{span()}"
-                        f"{span('box-digit')}{string[4]}{span()}"
-                        f"{span('box-ap')}{string[5:]}{span()}"
+                    string = span_enclose(
+                        "box-time12",
+                        span_enclose("box-1", string[0]),
+                        span_enclose("box-digit", string[1]),
+                        span_enclose("box-colon", string[2]),
+                        span_enclose("box-digit", string[3]),
+                        span_enclose("box-digit", string[4]),
+                        # will correctly add nothing if there are only 5 characters
+                        span_enclose("box-ap", string[5:]),
                     )
+            else:
+                string = span_enclose(
+                    "box-time24" if self._using_24h else "box-time12", string
+                )
 
             # html style tags like b, i, strong, etc separated by spaces
             for html_style in meridiem_style.split():
                 string = f"<{html_style}>{string}</{html_style}>"
 
         return string
+
+    def format_blank_time_string(
+        self,
+        html: bool = False,
+    ) -> str:
+        if html:
+            if self._using_24h:
+                return span_enclose("box-time24", "")
+            else:
+                return span_enclose("box-time12", "")
+        else:
+            return ""
+
+    class DaystringHandler(Protocol):
+        def __call__(
+            self,
+            self_: StyleHandler,
+            days_of_service: dict[str, int],
+            *,
+            offset: int,
+            html: bool,
+            **_,
+        ) -> str: ...
 
     _DAYS_IN_WEEK = [
         "monday",
@@ -145,37 +179,15 @@ class StyleHandler:
         "sunday",
     ]
 
-    _DAY_INITIAL_EN = "MTWTFSS"
-    _DAY_INITIAL_FR = "LMMJVSD"
+    _DAY_CHARS_EN = "MTWTFSS"
+    _DAY_CHARS_FR = "LMMJVSD"
+    _DAY_CHARS_NUMS = "1234567"
 
-    def _daystring_numbers(
-        self, days_of_service: dict[str, int], *, html: bool = False, **_
-    ):
-        """
-        Presents days of service in numeric form, starting from the day of choice.
-        Out of service days are given their own class for custom styling later,
-        such as crossing or greying out digits. Information on what day "1" is
-        should be provided elsewhere on the timetable.
-
-        For CSV-only presentation, out of service day digits are presented as an underscore.
-        """
-        week_start = self._DAYS_IN_WEEK.index(self._week_start)
-        days_in_week = self._DAYS_IN_WEEK[week_start:] + self._DAYS_IN_WEEK[:week_start]
-
-        string = ""
-        for num, day in enumerate(days_in_week, start=1):
-            if html:
-                html_class = "running" if days_of_service[day] else "absent"
-                string += f'<span class="number_day_{html_class}">{num}</span>'
-            else:
-                string += str(num) if days_of_service[day] else "_"
-
-        return string
-
-    def _daystring_letters(
+    def _day_string_chars(
         self,
         days_of_service: dict[str, int],
         *,
+        offset: int = 0,
         html: bool = False,
         locale_initials: str,
         **_,
@@ -190,38 +202,57 @@ class StyleHandler:
         """
         week_start = self._DAYS_IN_WEEK.index(self._week_start)
         days_in_week = self._DAYS_IN_WEEK[week_start:] + self._DAYS_IN_WEEK[:week_start]
-        initials_in_week = locale_initials[week_start:] + locale_initials[:week_start]
+        days_chars = locale_initials[week_start:] + locale_initials[:week_start]
+        days_of_service_ordered = [days_of_service[day] for day in days_in_week]
+        assert len(days_of_service_ordered) == len(days_chars), "Where did the time go?"
 
         string = ""
-        for let, day in zip(initials_in_week, days_in_week):
+        for i, char in enumerate(days_chars):
+            is_running_today = days_of_service_ordered[
+                (i - offset) % len(days_of_service_ordered)
+            ]
             if html:
-                html_class = "running" if days_of_service[day] else "absent"
-                string += f'<span class="letter_day_{html_class}">{let}</span>'
+                html_class = "running" if is_running_today else "absent"
+                string += span_enclose(f"char-day-{html_class}", char)
             else:
-                string += let if days_of_service[day] else "_"
+                string += char if is_running_today else "_"
 
         return string
 
-    _daystring_letters_en = partial(_daystring_letters, locale_initials=_DAY_INITIAL_EN)
-    _daystring_letters_fr = partial(_daystring_letters, locale_initials=_DAY_INITIAL_FR)
+    _day_string_letters_en: DaystringHandler = partial(
+        _day_string_chars, locale_initials=_DAY_CHARS_EN
+    )
+    _day_string_letters_fr: DaystringHandler = partial(
+        _day_string_chars, locale_initials=_DAY_CHARS_FR
+    )
+    _day_string_numbers: DaystringHandler = partial(
+        _day_string_chars, locale_initials=_DAY_CHARS_NUMS
+    )
 
-    def _daystring_letters_ca_bilingual(
-        self, days_of_service: dict[str, int], *, html: bool = False, **_
+    def _day_string_letters_ca_bilingual(
+        self,
+        days_of_service: dict[str, int],
+        *,
+        offset: int = 0,
+        html: bool = False,
+        **_,
     ) -> str:
         """
         Uses the English and French day initials together for extra maple syrup.
         """
         return (
-            self._daystring_letters_en(days_of_service, html=html)
+            self._day_string_letters_en(self, days_of_service, offset=offset, html=html)
             + ("<br>" if html else "\n")
-            + self._daystring_letters_fr(days_of_service, html=html)
+            + self._day_string_letters_fr(
+                self, days_of_service, offset=offset, html=html
+            )
         )
 
     # This dictionary of special cases for daystring is easier to read
     # than hand-writing all the if-thens.
     # The special cases are ones which don't need the "rotation trick"
     # (or, in the case of SaSu, where we want to *avoid* it)
-    _daystring_special_cases: Final[dict[tuple[...], str]] = {
+    _day_string_special_cases: Final[dict[tuple[...], str]] = {
         (1, 1, 1, 1, 1, 1, 1): "Daily",
         # Missing only one day
         (1, 1, 1, 1, 1, 1, 0): "Mo-Sa",
@@ -276,7 +307,7 @@ class StyleHandler:
 
     # The following function and above LUT is copied from the original monolithic implementation.
     # It's quite verbose, but I see no better way for it to be implemented. - Borketh
-    def _daystring_neroden_hyphens_2l(
+    def _day_string_neroden_hyphens_2l(
         self, days_of_service: dict[str, int], *, offset: int = 0, **_
     ) -> str:
         """
@@ -307,7 +338,7 @@ class StyleHandler:
 
         # Try the lookup-table path.
         try:
-            daystring = self._daystring_special_cases[tuple(days_of_service_vector)]
+            daystring = self._day_string_special_cases[tuple(days_of_service_vector)]
             return daystring
         except KeyError:
             pass
@@ -341,35 +372,41 @@ class StyleHandler:
         # Generic case
         return daystring
 
-    class DaystringHandler(Protocol):
-        def __call__(
-            self,
-            self2: StyleHandler,
-            days_of_service: dict[str, int],
-            *,
-            offset: int,
-            html: bool,
-            **_,
-        ) -> str: ...
-
-    _daystring_formats: dict[str, DaystringHandler] = {
-        "hyphen-2l": _daystring_neroden_hyphens_2l,
-        "numbers": _daystring_numbers,
-        "letters-en": _daystring_letters_en,
-        "letters-fr": _daystring_letters_fr,
-        "letters-CA": _daystring_letters_ca_bilingual,
+    _day_string_formats: dict[str, DaystringHandler] = {
+        "hyphen-2l": _day_string_neroden_hyphens_2l,
+        "numbers": _day_string_numbers,
+        "letters-en": _day_string_letters_en,
+        "letters-fr": _day_string_letters_fr,
+        "letters-CA": _day_string_letters_ca_bilingual,
     }
 
-    def format_daystring(
-        self, days_of_service: dict[str, int], offset: int = 0, html: bool = False
+    def format_day_string(
+        self,
+        days_of_service: dict[str, int] | Calendar,
+        offset: int = 0,
+        html: bool = False,
     ) -> str:
+        # normalize the days_of_service from whatever we're given
+        if type(days_of_service) is not dict:
+            days_of_service: Calendar
+            days_of_service_list = days_of_service.to_dict("records")
+            # if there are zero or duplicate service records, we error out.
+            if len(days_of_service_list) == 0:
+                raise GTFSError("daystring() can't handle an empty calendar")
+            if len(days_of_service_list) >= 2:
+                raise GTFSError(
+                    "daystring() can't handle two calendars for service_id: ",
+                    days_of_service_list,
+                )
+            days_of_service: dict[str, int] = days_of_service_list[0]
+
         every_day_string = self._day_format["all"]  # For example, "Daily"
         some_days_format = self._day_format["some"]
 
         if every_day_string != some_days_format and all(days_of_service.values()):
             return every_day_string
 
-        return self._daystring_formats[some_days_format](
+        return self._day_string_formats[some_days_format](
             self, days_of_service, offset=offset, html=html
         )
 

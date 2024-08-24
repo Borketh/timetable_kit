@@ -11,59 +11,53 @@ timetable.py --help gives documentation
 #########################
 # Other people's packages
 
-import sys  # sys.exit(0), sys.exit(1), and sys.path
 import os  # for os.getenv
 import os.path  # for os.path abilities including os.path.isdir
 import shutil  # To copy files
+import sys  # sys.exit(0), sys.exit(1), and sys.path
+from datetime import date, timedelta  # for seeking a valid reference date
 from pathlib import Path
 
-from datetime import date, timedelta  # for seeking a valid reference date
-
 from weasyprint import HTML as weasyHTML  # type: ignore # Tell MyPy this has no type stubs
+
+# For copying into the final HTML folder
+from timetable_kit import connecting_services
+from timetable_kit import icons
 
 ############
 # My modules
 # This (runtime_config) stores critical data supplied at runtime such as the agency subpackage to use.
 from timetable_kit import runtime_config
-
-# My errors, for seeking a valid reference date
-from timetable_kit.errors import NoTripError, TwoTripsError
+from timetable_kit.convenience_types import HtmlAndCss
+from timetable_kit.core import (
+    TTSpec,
+    fill_tt_spec,
+)
 
 ####################################
 # Specific functions from my modules
 # Note namespaces are separate for each file/module
 # Also note: python packaging is really sucky for direct script testing.
 from timetable_kit.debug import set_debug_level, debug_print
-from timetable_kit.feed_enhanced import DateRange
+
+# My errors, for seeking a valid reference date
+from timetable_kit.errors import NoTripError, TwoTripsError
 from timetable_kit.file_handling import read_list_file
-
-from timetable_kit.convenience_types import HtmlAndCss
-
-# We call these repeatedly, so give them shorthand names
-from timetable_kit.runtime_config import agency
-from timetable_kit.runtime_config import agency_singleton
-
-# The actual value of agency will be set up later, after reading the arguments
-# It is unsafe to do it here!
-
 from timetable_kit.initialize import initialize_feed
-
-from timetable_kit.timetable_argparse import make_tt_arg_parser
-from timetable_kit.core import (
-    TTSpec,
-    fill_tt_spec,
-)
-from timetable_kit.timetable_class import (
-    Timetable, TTConfig,
-)
 from timetable_kit.page_layout import (
     produce_html_page,
     produce_html_file,
 )
 
-# For copying into the final HTML folder
-from timetable_kit import connecting_services
-from timetable_kit import icons
+# We call these repeatedly, so give them shorthand names
+from timetable_kit.runtime_config import agency
+from timetable_kit.runtime_config import agency_singleton
+from timetable_kit.styles import StyleHandler
+from timetable_kit.timetable_argparse import make_tt_arg_parser
+from timetable_kit.timetable_class import (
+    Timetable,
+    TTConfig,
+)
 
 # Module-level globals for memoization
 _prepared_output_dirs = []
@@ -152,10 +146,7 @@ def copy_supporting_files_to_output_dir(output_dir: str | Path, for_rpa=False):
 
 
 def search_date(
-    config: TTConfig,
-    *,
-    spec_file: str,
-    num_days: int  # Number of days to try
+    config: TTConfig, *, spec_file: str, num_days: int  # Number of days to try
 ) -> None:
     """For a single spec file, seek a valid date."""
     # Acquire the feed, enhance it, do generic patching.
@@ -196,7 +187,7 @@ def search_date(
 
             # Test run.
             _t_plaintext: Timetable = fill_tt_spec(
-                spec, today_feed=reduced_feed, doing_html=False
+                spec, style=StyleHandler(), today_feed=reduced_feed, doing_html=False
             )
         except NoTripError:
             debug_print(1, "No trip found: trying next date")
@@ -212,10 +203,7 @@ def search_date(
         debug_print(1, "Exhausted all dates without finding good date.")
 
 
-def produce_several_timetables(
-    list_file_list,
-    config: TTConfig
-) -> None:
+def produce_several_timetables(list_file_list, config: TTConfig) -> None:
     """Main program to run from other Python programs.
 
     Doesn't mess around with args or environment variables. Does not take a default gtfs
@@ -240,6 +228,10 @@ def produce_several_timetables(
     if not config.gtfs_filename:
         print("produce_several_timetables: gtfs_filename is mandatory!")
         sys.exit(1)
+
+    style = StyleHandler(
+        config.style_filename
+    )  # defaults to "default" on multiple levels, so doesn't need checking
 
     # Doing PDF requires doing HTML first.
     config.cascade_todos()
@@ -292,7 +284,7 @@ def produce_several_timetables(
                 # CSV can only do one page at a time.  Use the subspec name.
                 # Also don't split big specs for CSV.  The end-user can do that.
                 t_plaintext: Timetable = fill_tt_spec(
-                    spec, today_feed=reduced_feed, doing_html=False
+                    spec, style=style, today_feed=reduced_feed, doing_html=False
                 )
                 # Note that there is a real danger of overwriting the source file.
                 # Avoid this by adding an extra suffix to the timetable name.
@@ -318,9 +310,9 @@ def produce_several_timetables(
                 for subspec in split_specs:
                     # Main timetable, same for HTML and PDF
                     t: Timetable = fill_tt_spec(
-                        subspec, today_feed=reduced_feed, doing_html=True
+                        subspec, style=style, today_feed=reduced_feed, doing_html=True
                     )
-                    t.set_agency_style(config.agency)
+                    t.set_style(style)
                     # Render to HTML
                     timetable_styled_html = t.render()
                     debug_print(1, "HTML styled")
@@ -331,7 +323,8 @@ def produce_several_timetables(
                         timetable_styled_html,
                         spec=subspec,
                         config=config,
-                        date_range=date_range
+                        style=style,
+                        date_range=date_range,
                     )
                     page_list.append(new_page)
                 # End loop over specs split out programmatically from a single .csv file
@@ -352,7 +345,9 @@ def produce_several_timetables(
         if config.do_html:
             # Produce complete multi-page HTML file.
             timetable_finished_html = produce_html_file(
-                page_list, title=title, for_rpa=for_rpa, agency_special_css=config.agency.agency_css_class()
+                page_list,
+                title=title,
+                agency_special_css=style.special_css_tag,
             )
             path_for_html = output_dir / Path(output_filename_base + ".html")
             with open(path_for_html, "w") as outfile:
@@ -371,7 +366,7 @@ def produce_several_timetables(
             debug_print(1, "Writing PDF file...")
             html_for_weasy.write_pdf(path_for_weasy)
             debug_print(1, "Wrote PDF file", path_for_weasy)
-        debug_print(1, "Done producing timetable for", spec_file)
+        debug_print(1, "Done producing timetable for", list_file)
     # Out of loop over files specified at the command line
 
 
@@ -439,20 +434,12 @@ def main():
         print("Input dir", input_dir, "does not exist.  Aborting.")
         sys.exit(1)
 
-    output_dir = (
-        args.output_dirname
-        or os.getenv("TIMETABLE_KIT_OUTPUT_DIR")
-        or "."
-    )
+    output_dir = args.output_dirname or os.getenv("TIMETABLE_KIT_OUTPUT_DIR") or "."
     if not os.path.isdir(output_dir):
         print("Output dir", output_dir, "does not exist.  Aborting.")
         sys.exit(1)
 
-    author = (
-        args.author
-        or os.getenv("TIMETABLE_KIT_AUTHOR")
-        or os.getenv("AUTHOR")
-    )
+    author = args.author or os.getenv("TIMETABLE_KIT_AUTHOR") or os.getenv("AUTHOR")
     if not author:
         print("--author is mandatory!")
         sys.exit(1)
@@ -461,16 +448,15 @@ def main():
         do_csv=args.do_csv,
         do_html=args.do_html,
         do_pdf=args.do_pdf,
-
         author=author,
         agency=agency_singleton(),
         sponsor="RPA",  # TODO this should be configurable through cmdline, and have effects
-
         gtfs_filename=gtfs_filename,
+        style_filename=args.style_filename,
         input_dir=input_dir,
         output_dir=output_dir,
         patch_the_feed=not args.nopatch,  # If nopatch, don't patch the feed.  Otherwise, do patch it.
-        reference_date=args.reference_date
+        reference_date=args.reference_date,
     )
 
     # Special case for --search argument
@@ -489,10 +475,7 @@ def main():
         # Bail out early
         return
 
-    produce_several_timetables(
-        list_file_list=spec_file_list,
-        config=config
-    )
+    produce_several_timetables(list_file_list=spec_file_list, config=config)
 
 
 ##########################
