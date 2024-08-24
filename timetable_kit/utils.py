@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from pandas import DataFrame, Series
-
 from timetable_kit.debug import debug_print
-
-Calendar = DataFrame | Series
 
 
 def span(class_name: str = "") -> str:

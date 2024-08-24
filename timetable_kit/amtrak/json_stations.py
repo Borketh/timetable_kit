@@ -18,18 +18,14 @@ get_station_name is the primary one.
 # will download Amtrak's station files into the './stations/' directory
 # otherwise runs test case
 
-import sys
-from pathlib import Path
-from io import StringIO  # Needed to parse JSON
 import argparse
-
-import requests
-import json  # better for the details import
+import random
+from io import StringIO  # Needed to parse JSON
+from pathlib import Path
 from time import sleep  # Avoid slamming Amtrak's server too fast -- not needed
 
 import pandas as pd
-
-import random
+import requests
 
 from timetable_kit.file_locations import get_timetable_kit_data_home
 

@@ -8,18 +8,19 @@ needs to be "low-level".
 This data includes the critical choice of which agency's subpackage to use.
 """
 import pathlib
+
 # For sys.exit
 import sys
 
-from timetable_kit.debug import debug_print
+import timetable_kit.amtrak
 
 # The agencies we might need to import
 import timetable_kit.generic_agency
-import timetable_kit.amtrak
-import timetable_kit.via
+import timetable_kit.greyhound
 import timetable_kit.hartford_line
 import timetable_kit.maple_leaf
-import timetable_kit.greyhound
+import timetable_kit.via
+from timetable_kit.debug import debug_print
 
 # These will get set elsewhere, later, by initialization code.
 agency_name: str = None

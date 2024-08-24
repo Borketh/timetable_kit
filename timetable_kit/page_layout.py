@@ -13,26 +13,24 @@ uses Jinja2, via the load_resources module.
 # Other people's packages
 import datetime  # for getting today's date for credit on the timetable
 
+from timetable_kit import connecting_services
+from timetable_kit import icons
+
+# The type, used for argument passing
+from timetable_kit.convenience_types import HtmlAndCss
+from timetable_kit.core import TTSpec
 from timetable_kit.feed_enhanced import DateRange
+from timetable_kit.load_resources import (
+    get_font_css,
+    template_environment,
+)
 
 # My packages
 # We need runtime data such as the subpackage for the agency (amtrak, via, etc.)
 # And we need a shorthand way to refer to it
 from timetable_kit.runtime_config import agency_singleton
-
-# The type, used for argument passing
-from timetable_kit.convenience_types import HtmlAndCss
-from timetable_kit.core import TTSpec
 from timetable_kit.styles import StyleHandler
-
 from timetable_kit.time import gtfs_date_to_isoformat
-from timetable_kit import icons
-from timetable_kit import connecting_services
-
-from timetable_kit.load_resources import (
-    get_font_css,
-    template_environment,
-)
 from timetable_kit.timetable_class import TTConfig
 
 

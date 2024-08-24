@@ -11,27 +11,24 @@ with error checking to make sure there's exactly one trip.
 
 It also gets rid of the shapes table, because it's huge and we don't use it.
 """
+import datetime  # for filter_for_utilities, to get current date if necessary
 from collections.abc import Iterable
 from dataclasses import dataclass
+from operator import not_  # Needed for bad_service_id filter
 from typing import Type, Self, Optional
 
-from operator import not_  # Needed for bad_service_id filter
-
-import datetime  # for filter_for_utilities, to get current date if necessary
-
-from pandas import DataFrame, Series
 import gtfs_kit  # type: ignore # Tell MyPy this has no type stubs
+from pandas import DataFrame, Series
 
 # These are used to distinguish str types with special restrictions.
 from timetable_kit.convenience_types import GTFSDate, GTFSDay
-
+from timetable_kit.debug import debug_print
 from timetable_kit.errors import (
     NoTripError,
     TwoTripsError,
     TwoStopsError,
     InputError,
 )
-from timetable_kit.debug import debug_print
 
 GTFS_DAYS = (
     "monday",
@@ -49,6 +46,7 @@ headers, appropriately lowercase for the column headers."""
 @dataclass
 class DateRange:
     """Used to track what dates a timetable is valid for."""
+
     latest_start_date: str
     earliest_end_date: str
 
@@ -65,20 +63,20 @@ class FeedEnhanced(gtfs_kit.Feed):
     def __init__(
         self,
         dist_units: str,
-        agency:             Optional[DataFrame] = None,
-        stops:              Optional[DataFrame] = None,
-        routes:             Optional[DataFrame] = None,
-        trips:              Optional[DataFrame] = None,
-        stop_times:         Optional[DataFrame] = None,
-        calendar:           Optional[DataFrame] = None,
-        calendar_dates:     Optional[DataFrame] = None,
-        fare_attributes:    Optional[DataFrame] = None,
-        fare_rules:         Optional[DataFrame] = None,
-        shapes:             Optional[DataFrame] = None,
-        frequencies:        Optional[DataFrame] = None,
-        transfers:          Optional[DataFrame] = None,
-        feed_info:          Optional[DataFrame] = None,
-        attributions:       Optional[DataFrame] = None,
+        agency: Optional[DataFrame] = None,
+        stops: Optional[DataFrame] = None,
+        routes: Optional[DataFrame] = None,
+        trips: Optional[DataFrame] = None,
+        stop_times: Optional[DataFrame] = None,
+        calendar: Optional[DataFrame] = None,
+        calendar_dates: Optional[DataFrame] = None,
+        fare_attributes: Optional[DataFrame] = None,
+        fare_rules: Optional[DataFrame] = None,
+        shapes: Optional[DataFrame] = None,
+        frequencies: Optional[DataFrame] = None,
+        transfers: Optional[DataFrame] = None,
+        feed_info: Optional[DataFrame] = None,
+        attributions: Optional[DataFrame] = None,
     ) -> None:
         # doing it long form instead of the mildly cursed way gtfs_kit does, because IDEs choke on that
         super().__init__(

@@ -7,28 +7,24 @@ This holds a class for "AgencyVIA" intended to be used as a singleton.
 """
 from typing import Tuple
 
-from timetable_kit.feed_enhanced import FeedEnhanced
-from timetable_kit.generic_agency import Agency
-
 # For generic reassembly functions
 import timetable_kit.text_assembly as text_assembly
-from timetable_kit.text_assembly import SAFE_BR
 
 # for patch_feed
 import timetable_kit.via.gtfs_patches as gtfs_patches
 
+# For get_route_name
+import timetable_kit.via.route_names as route_names
+
 # For checked baggage, sleeper trains, major stations list
 import timetable_kit.via.special_data as special_data
-
-# All the rest are for get_station_name_pretty
-from timetable_kit.debug import set_debug_level, debug_print
+from timetable_kit.feed_enhanced import FeedEnhanced
+from timetable_kit.generic_agency import Agency
+from timetable_kit.text_assembly import SAFE_BR
 
 # Map from station codes to connecting service names
 # This is stashed in a class variable
 from timetable_kit.via.connecting_services_data import connecting_services_dict
-
-# For get_route_name
-import timetable_kit.via.route_names as route_names
 
 # For getting the province for a given stop code
 from timetable_kit.via.province_data import stop_code_to_province

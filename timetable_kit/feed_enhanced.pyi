@@ -7,8 +7,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Type, Self, Optional
 
-from pandas import DataFrame, Series
 from gtfs_kit import Feed  # type: ignore # Tell MyPy this has no type stubs
+from pandas import DataFrame, Series
 
 GTFS_DAYS: tuple[str, str, str, str, str, str, str]
 
@@ -19,28 +19,25 @@ class DateRange:
     latest_start_date: str
     earliest_end_date: str
 
-    def is_invalid(self) -> bool:
-        ...
-
-    def is_one_day(self) -> bool:
-        ...
+    def is_invalid(self) -> bool: ...
+    def is_one_day(self) -> bool: ...
 
 class FeedEnhanced(Feed):
     dist_units: str
-    agency:             Optional[DataFrame] = None
-    stops:              Optional[DataFrame] = None
-    routes:             Optional[DataFrame] = None
-    trips:              Optional[DataFrame] = None
-    stop_times:         Optional[DataFrame] = None
-    calendar:           Optional[DataFrame] = None
-    calendar_dates:     Optional[DataFrame] = None
-    fare_attributes:    Optional[DataFrame] = None
-    fare_rules:         Optional[DataFrame] = None
-    shapes:             Optional[DataFrame] = None
-    frequencies:        Optional[DataFrame] = None
-    transfers:          Optional[DataFrame] = None
-    feed_info:          Optional[DataFrame] = None
-    attributions:       Optional[DataFrame] = None
+    agency: Optional[DataFrame] = None
+    stops: Optional[DataFrame] = None
+    routes: Optional[DataFrame] = None
+    trips: Optional[DataFrame] = None
+    stop_times: Optional[DataFrame] = None
+    calendar: Optional[DataFrame] = None
+    calendar_dates: Optional[DataFrame] = None
+    fare_attributes: Optional[DataFrame] = None
+    fare_rules: Optional[DataFrame] = None
+    shapes: Optional[DataFrame] = None
+    frequencies: Optional[DataFrame] = None
+    transfers: Optional[DataFrame] = None
+    feed_info: Optional[DataFrame] = None
+    attributions: Optional[DataFrame] = None
 
     @classmethod
     def enhance(cls: Type[Self], regular_feed: Feed) -> Self: ...

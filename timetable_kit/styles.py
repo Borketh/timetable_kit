@@ -6,11 +6,11 @@ from typing import Any, Final, Protocol
 
 import tomlkit
 
-from timetable_kit.utils import Calendar, span_enclose, test, recurse_update_dict
-from timetable_kit.debug import debug_print
 from timetable_kit.errors import GTFSError
 from timetable_kit.load_resources import get_style_toml
 from timetable_kit.time import TimeTuple
+from timetable_kit.utils import span_enclose, recurse_update_dict
+from timetable_kit.convenience_types import Calendar
 
 EXPECTED_KEYS: Final[set[str]] = {"time", "day", "css"}
 

@@ -6,14 +6,13 @@
 Created when PANDAS's Styler wasn't doing what I wanted.
 """
 
+import html  # for html.escape
 import os  # for os.PathLike
 from dataclasses import dataclass
 from functools import cache  # for memoization
-import html  # for html.escape
 from pathlib import Path
 
 import pandas as pd
-
 from jinja2 import Template  # for typehints
 
 # My packages

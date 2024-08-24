@@ -9,16 +9,20 @@ class inheritance.
 """
 from typing import Protocol
 
-from timetable_kit.feed_enhanced import FeedEnhanced
-from timetable_kit.debug import debug_print
-
-# For text twiddling
-from timetable_kit import text_assembly
-from timetable_kit.text_assembly import href_wrap, and_clause, or_clause
-from timetable_kit.text_assembly import SAFE_BR
-
 # Find the HTML for a specific connecting agency's logo
 from timetable_kit.connecting_services import get_connecting_service_logo_html
+from timetable_kit.debug import debug_print
+from timetable_kit.feed_enhanced import FeedEnhanced
+
+# For text twiddling
+from timetable_kit.text_assembly import (
+    SAFE_BR,
+    station_name_to_single_line_text,
+    station_name_to_multiline_text,
+    href_wrap,
+    and_clause,
+    or_clause,
+)
 
 
 # Intended to be used both directly and by subclasses
@@ -564,10 +568,10 @@ class Agency:
                 stop_name_raw, facility_name, station_code, major
             )
         elif doing_multiline_text:
-            reassemble = text_assembly.station_name_to_multiline_text
+            reassemble = station_name_to_multiline_text
             return reassemble(stop_name_raw, facility_name, station_code, major)
         else:
-            reassemble = text_assembly.station_name_to_single_line_text
+            reassemble = station_name_to_single_line_text
             return reassemble(stop_name_raw, facility_name, station_code, major)
 
 
