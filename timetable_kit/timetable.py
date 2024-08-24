@@ -293,7 +293,7 @@ def produce_several_timetables(list_file_list, config: TTConfig) -> None:
 
             if config.do_html:
                 # Set true if true on any spec
-                for_rpa = for_rpa or bool(spec.aux.get("for_rpa"))
+                for_rpa = for_rpa or style.for_rpa
 
                 # OK!  This code is intended to simplify work on the NEC.
                 if spec.aux.get("max_columns_per_page", 0):
@@ -347,6 +347,7 @@ def produce_several_timetables(list_file_list, config: TTConfig) -> None:
             timetable_finished_html = produce_html_file(
                 page_list,
                 title=title,
+                for_rpa=for_rpa,
                 agency_special_css=style.special_css_tag,
             )
             path_for_html = output_dir / Path(output_filename_base + ".html")

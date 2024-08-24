@@ -328,11 +328,6 @@ class Agency:
         # There is probably a better way to do this.
         return False
 
-    def agency_css_class(self) -> str:
-        """Name of a CSS class for agency-specific styling."""
-        # Default is blank.  This generates class="".
-        return ""
-
     def get_all_connecting_services(self, station_list: list[str]) -> list[str]:
         """Given a list of station codes, return a list of services which connect (with
         no duplicates)"""
@@ -588,5 +583,4 @@ def get_singleton() -> Agency:
 
 class AgencySingletonGetter(Protocol):
     @staticmethod
-    def get_singleton() -> Agency:
-        ...
+    def get_singleton() -> Agency: ...

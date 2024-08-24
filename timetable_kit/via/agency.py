@@ -86,10 +86,6 @@ class AgencyVIA(Agency):
         """
         return True
 
-    def agency_css_class(self) -> str:
-        """Name of a CSS class for agency-specific styling."""
-        return "via-special-css"
-
     def get_route_name(self, today_feed: FeedEnhanced, route_id: str) -> str:
         """Given today_feed and a route_id, produce a suitable name for a column
         subheading.

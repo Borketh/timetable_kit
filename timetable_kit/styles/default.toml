@@ -10,3 +10,6 @@ week_start = "monday"
 
 [css]
 tag = "amtrak-special-css"
+
+[extra]
+for_rpa = true

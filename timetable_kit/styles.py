@@ -39,6 +39,7 @@ class StyleHandler:
                 },
                 "day": {"format": day_format, "week_start": week_start},
                 "css": {"tag": special_css},
+                "extra": {"for_rpa": is_for_rpa},
             }:
 
                 self._using_24h: bool = using_24h
@@ -53,6 +54,7 @@ class StyleHandler:
                 )
                 self._week_start: str = week_start
                 self._special_css_tag: str = special_css
+                self._is_for_rpa: bool = is_for_rpa
 
             case _:
                 err = "Style config not valid. "
@@ -413,3 +415,7 @@ class StyleHandler:
     @property
     def special_css_tag(self) -> str:
         return self._special_css_tag
+
+    @property
+    def for_rpa(self) -> bool:
+        return self._is_for_rpa

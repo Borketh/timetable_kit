@@ -82,10 +82,6 @@ class AgencyMapleLeaf(AgencyAmtrak, AgencyVIA):
         print("Enhanced station list", enhanced_station_list)
         return super().get_all_connecting_services(enhanced_station_list)
 
-    def agency_css_class(self) -> str:
-        """Name of a CSS class for agency-specific styling."""
-        return "maple-leaf-special-css"
-
 
 # Establish the singleton
 _singleton = AgencyMapleLeaf()
